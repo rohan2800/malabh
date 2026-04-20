@@ -60,27 +60,47 @@ const revealObserver = new IntersectionObserver(
 
 revealEls.forEach(el => revealObserver.observe(el));
 
-/* ── TRAILER PLAY BUTTON ────────────────────────────────────── */
+/* ── TEASER PLAY BUTTON ────────────────────────────────────────── */
 const trailerOverlay = document.getElementById('trailerOverlay');
 const trailerPlay    = document.getElementById('trailerPlay');
 const teaserVideo    = document.getElementById('teaserVideo');
 
-function playTrailer() {
+function playTeaser() {
   if (trailerOverlay) trailerOverlay.classList.add('hidden');
   if (teaserVideo) {
-    // Pause background music when teaser starts
     const bgAudio = document.getElementById('bg-audio');
     if (bgAudio) bgAudio.pause();
-
     teaserVideo.setAttribute('controls', 'true');
     teaserVideo.play();
   }
 }
 
 if (trailerOverlay) {
-  trailerOverlay.addEventListener('click', playTrailer);
+  trailerOverlay.addEventListener('click', playTeaser);
   trailerPlay.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') playTrailer();
+    if (e.key === 'Enter' || e.key === ' ') playTeaser();
+  });
+}
+
+/* ── OFFICIAL TRAILER PLAY BUTTON ─────────────────────────────── */
+const trailerOverlay2 = document.getElementById('trailerOverlay2');
+const trailerPlay2    = document.getElementById('trailerPlay2');
+const officialTrailerVideo = document.getElementById('officialTrailerVideo');
+
+function playOfficialTrailer() {
+  if (trailerOverlay2) trailerOverlay2.classList.add('hidden');
+  if (officialTrailerVideo) {
+    const bgAudio = document.getElementById('bg-audio');
+    if (bgAudio) bgAudio.pause();
+    officialTrailerVideo.setAttribute('controls', 'true');
+    officialTrailerVideo.play();
+  }
+}
+
+if (trailerOverlay2) {
+  trailerOverlay2.addEventListener('click', playOfficialTrailer);
+  trailerPlay2.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') playOfficialTrailer();
   });
 }
 
@@ -114,14 +134,18 @@ if (bookingForm) {
     // 1. Show the Ticket Preview Modal
     showTicketModal();
 
-    // 2. Send data to Google Sheets
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwrGrw4DvaeM-mNxWdMgarsxiC9_W-nzLxVays7OLXqezAebObm28FDHv0pri/exec';
+    // 2. Send data to Google Sheets via FormData (works with no-cors)
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyT01XugIk-3aeKK6fKMf7iPtKo40L4Ak2r_6AUYAh4B0O80CBq17M3Zfn1HMtLA0yy/exec';
     
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('phone', phone);
+    formData.append('email', email);
+
     fetch(scriptURL, {
       method: 'POST',
-      mode: 'no-cors', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, email })
+      mode: 'no-cors',
+      body: formData
     })
     .then(() => {
       showToast();
@@ -161,7 +185,7 @@ if (downloadTicketBtn) {
     const originalText = this.innerHTML;
     this.innerHTML = '<span>Processing...</span>';
     
-    const fileName = 'Golden%20pass.jpeg';
+    const fileName = 'golden-pass.jpeg';
     const downloadName = 'Malabh-Golden-Pass.jpeg';
 
     // Best Method: Fetch as blob to force download
@@ -308,63 +332,70 @@ window.addEventListener('load', () => {
   });
 });
 
-/* ── BACKGROUND SOUNDTRACK LOGIC ───────────────────────────── */
+/* ── BACKGROUND SOUNDTRACK LOGIC ───────────────────────── */
 (function initBackgroundMusic() {
   const bgAudio     = document.getElementById('bg-audio');
-  const teaserVideo = document.getElementById('teaserVideo');
+  const teaserVid   = document.getElementById('teaserVideo');
+  const trailerVid  = document.getElementById('officialTrailerVideo');
   
   if (!bgAudio) return;
 
   let playCount = 0;
   const MAX_PLAYS = 2;
-  let isTeaserPlaying = false;
+  let isVideoPlaying = false;
 
-  // Function to handle ending of a loop
+  function tryResume() {
+    if (!isVideoPlaying && playCount < MAX_PLAYS) {
+      bgAudio.play().catch(() => {});
+    }
+  }
+
+  function pauseForVideo() {
+    isVideoPlaying = true;
+    bgAudio.pause();
+  }
+
+  function videoStopped() {
+    isVideoPlaying = false;
+    tryResume();
+  }
+
+  // Track play count
   bgAudio.addEventListener('ended', () => {
     playCount++;
-    if (playCount < MAX_PLAYS && !isTeaserPlaying) {
+    if (playCount < MAX_PLAYS && !isVideoPlaying) {
       bgAudio.play().catch(() => {});
     }
   });
 
-  // Handle Teaser Video interaction
-  if (teaserVideo) {
-    teaserVideo.addEventListener('play', () => {
-      isTeaserPlaying = true;
-      bgAudio.pause();
-    });
+  // Pause/resume for BOTH videos
+  [teaserVid, trailerVid].forEach(video => {
+    if (!video) return;
+    video.addEventListener('play', pauseForVideo);
+    video.addEventListener('pause', videoStopped);
+    video.addEventListener('ended', videoStopped);
+  });
 
-    teaserVideo.addEventListener('pause', () => {
-      isTeaserPlaying = false;
-      // Resume only if we haven't reached the limit
-      if (playCount < MAX_PLAYS) {
-        bgAudio.play().catch(() => {});
-      }
-    });
-
-    teaserVideo.addEventListener('ended', () => {
-      isTeaserPlaying = false;
-      // Resume only if we haven't reached the limit
-      if (playCount < MAX_PLAYS) {
-        bgAudio.play().catch(() => {});
-      }
-    });
+  // Start music: try immediately, then on first interaction
+  function startMusic() {
+    if (bgAudio.paused && playCount < MAX_PLAYS && !isVideoPlaying) {
+      bgAudio.volume = 0.35;
+      bgAudio.play().catch(() => {});
+    }
   }
 
-  // Autoplay on first user interaction with the page
-  const startMusicOnInteraction = () => {
-    if (bgAudio.paused && playCount < MAX_PLAYS && !isTeaserPlaying) {
-      bgAudio.volume = 0.35;
-      bgAudio.play().then(() => {
-        // Successfully started
-      }).catch(() => {});
-    }
-    document.removeEventListener('click', startMusicOnInteraction);
-    document.removeEventListener('touchstart', startMusicOnInteraction);
-    document.removeEventListener('keydown', startMusicOnInteraction);
-  };
+  // Attempt autoplay on page load
+  window.addEventListener('load', () => {
+    setTimeout(startMusic, 500);
+  });
 
-  document.addEventListener('click', startMusicOnInteraction, { once: true });
-  document.addEventListener('touchstart', startMusicOnInteraction, { once: true });
-  document.addEventListener('keydown', startMusicOnInteraction, { once: true });
+  // Fallback: start on first user interaction (scroll/touch/click)
+  const interactions = ['scroll', 'touchstart', 'click', 'keydown'];
+  const onFirstInteraction = () => {
+    startMusic();
+    interactions.forEach(evt => document.removeEventListener(evt, onFirstInteraction));
+    window.removeEventListener('scroll', onFirstInteraction);
+  };
+  interactions.forEach(evt => document.addEventListener(evt, onFirstInteraction, { once: true, passive: true }));
+  window.addEventListener('scroll', onFirstInteraction, { once: true, passive: true });
 })();
