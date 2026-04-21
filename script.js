@@ -18,7 +18,7 @@ handleNavScroll();
 
 /* ── MOBILE NAV TOGGLE ──────────────────────────────────────── */
 const navToggle = document.getElementById('navToggle');
-const navLinks  = document.getElementById('navLinks');
+const navLinks = document.getElementById('navLinks');
 
 navToggle.addEventListener('click', () => {
   const isOpen = navLinks.classList.toggle('open');
@@ -44,8 +44,8 @@ const revealObserver = new IntersectionObserver(
       if (entry.isIntersecting) {
         // Stagger siblings slightly
         const siblings = [...entry.target.parentElement.querySelectorAll('.reveal:not(.visible)')];
-        const idx      = siblings.indexOf(entry.target);
-        const delay    = Math.min(idx * 80, 400);
+        const idx = siblings.indexOf(entry.target);
+        const delay = Math.min(idx * 80, 400);
 
         setTimeout(() => {
           entry.target.classList.add('visible');
@@ -62,8 +62,8 @@ revealEls.forEach(el => revealObserver.observe(el));
 
 /* ── TEASER PLAY BUTTON ────────────────────────────────────────── */
 const trailerOverlay = document.getElementById('trailerOverlay');
-const trailerPlay    = document.getElementById('trailerPlay');
-const teaserVideo    = document.getElementById('teaserVideo');
+const trailerPlay = document.getElementById('trailerPlay');
+const teaserVideo = document.getElementById('teaserVideo');
 
 function playTeaser() {
   if (trailerOverlay) trailerOverlay.classList.add('hidden');
@@ -82,7 +82,7 @@ if (trailerOverlay) {
 
 /* ── OFFICIAL TRAILER PLAY BUTTON ─────────────────────────────── */
 const trailerOverlay2 = document.getElementById('trailerOverlay2');
-const trailerPlay2    = document.getElementById('trailerPlay2');
+const trailerPlay2 = document.getElementById('trailerPlay2');
 const officialTrailerVideo = document.getElementById('officialTrailerVideo');
 
 function playOfficialTrailer() {
@@ -102,7 +102,7 @@ if (trailerOverlay2) {
 
 /* ── BOOKING FORM SUBMISSION ────────────────────────────────── */
 const bookingForm = document.getElementById('bookingForm');
-const toast       = document.getElementById('toast');
+const toast = document.getElementById('toast');
 
 function showToast() {
   toast.classList.add('show');
@@ -113,7 +113,18 @@ if (bookingForm) {
   bookingForm.addEventListener('submit', function (e) {
     e.preventDefault();
 
-    const name  = document.getElementById('name').value.trim();
+    const toastMsg = document.getElementById('toastMessage');
+
+    // Prevent duplicate registrations from the same browser
+    if (localStorage.getItem('malabh_registered') === 'true') {
+      if (toastMsg) {
+        toastMsg.innerText = "You have already registered for a Golden Pass!";
+      }
+      showToast();
+      return;
+    }
+
+    const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const email = document.getElementById('email').value.trim();
 
@@ -131,8 +142,8 @@ if (bookingForm) {
     showTicketModal();
 
     // 2. Send data to Google Sheets via FormData (works with no-cors)
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyT01XugIk-3aeKK6fKMf7iPtKo40L4Ak2r_6AUYAh4B0O80CBq17M3Zfn1HMtLA0yy/exec';
-    
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbz2zfYXzuqVF-txAF2byqDBKjA37slnmOQCJnnFfhlkbmphx-Q9WbRC2wQydnXwsBvc/exec';
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('phone', phone);
@@ -143,24 +154,30 @@ if (bookingForm) {
       mode: 'no-cors',
       body: formData
     })
-    .then(() => {
-      showToast();
-      bookingForm.reset();
-    })
-    .catch(error => {
-      console.error('Error!', error.message);
-    })
-    .finally(() => {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnText;
-    });
+      .then(() => {
+        // Mark as registered in local storage
+        localStorage.setItem('malabh_registered', 'true');
+        
+        if (toastMsg) {
+          toastMsg.innerText = "Booking received! Your pass is downloading. Please check your email.";
+        }
+        showToast();
+        bookingForm.reset();
+      })
+      .catch(error => {
+        console.error('Error!', error.message);
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      });
   });
 }
 
 /* ── TICKET MODAL LOGIC ────────────────────────────────────── */
-const ticketModal      = document.getElementById('ticketModal');
-const modalClose       = document.getElementById('modalClose');
-const modalBackdrop    = document.getElementById('modalBackdrop');
+const ticketModal = document.getElementById('ticketModal');
+const modalClose = document.getElementById('modalClose');
+const modalBackdrop = document.getElementById('modalBackdrop');
 const downloadTicketBtn = document.getElementById('downloadTicketBtn');
 
 function showTicketModal() {
@@ -173,14 +190,14 @@ function closeTicketModal() {
   document.body.style.overflow = ''; // Restore scroll
 }
 
-if (modalClose)    modalClose.addEventListener('click', closeTicketModal);
+if (modalClose) modalClose.addEventListener('click', closeTicketModal);
 if (modalBackdrop) modalBackdrop.addEventListener('click', closeTicketModal);
 
 if (downloadTicketBtn) {
-  downloadTicketBtn.addEventListener('click', function() {
+  downloadTicketBtn.addEventListener('click', function () {
     const originalText = this.innerHTML;
     this.innerHTML = '<span>Processing...</span>';
-    
+
     const fileName = 'golden-pass.jpeg';
     const downloadName = 'Malabh-Golden-Pass.jpeg';
 
@@ -199,13 +216,13 @@ if (downloadTicketBtn) {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         this.innerHTML = '<span>Downloaded!</span>';
         setTimeout(() => { this.innerHTML = originalText; }, 2000);
       })
       .catch(error => {
         console.warn('Blob download failed, trying fallback method:', error);
-        
+
         // Fallback Method: Standard anchor download
         try {
           const link = document.createElement('a');
@@ -215,7 +232,7 @@ if (downloadTicketBtn) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          
+
           this.innerHTML = '<span>Check Downloads</span>';
           setTimeout(() => { this.innerHTML = originalText; }, 2000);
         } catch (fallbackError) {
@@ -268,7 +285,7 @@ galleryItems.forEach(img => {
 */
 
 /* ── SMOOTH ACTIVE NAV HIGHLIGHT ────────────────────────────── */
-const sections   = document.querySelectorAll('section[id]');
+const sections = document.querySelectorAll('section[id]');
 const navAnchors = document.querySelectorAll('.nav-links a[href^="#"]');
 
 const sectionObserver = new IntersectionObserver(
@@ -315,7 +332,7 @@ if (window.matchMedia('(pointer: fine)').matches) {
   document.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
     cursor.style.left = mx + 'px';
-    cursor.style.top  = my + 'px';
+    cursor.style.top = my + 'px';
   });
 }
 

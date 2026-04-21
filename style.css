@@ -1151,6 +1151,20 @@ a {
   align-items: start;
 }
 
+.contact-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.contact-help-note p {
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
 .contact-item {
   display: flex;
   gap: 20px;
