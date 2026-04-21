@@ -68,8 +68,6 @@ const teaserVideo    = document.getElementById('teaserVideo');
 function playTeaser() {
   if (trailerOverlay) trailerOverlay.classList.add('hidden');
   if (teaserVideo) {
-    const bgAudio = document.getElementById('bg-audio');
-    if (bgAudio) bgAudio.pause();
     teaserVideo.setAttribute('controls', 'true');
     teaserVideo.play();
   }
@@ -90,8 +88,6 @@ const officialTrailerVideo = document.getElementById('officialTrailerVideo');
 function playOfficialTrailer() {
   if (trailerOverlay2) trailerOverlay2.classList.add('hidden');
   if (officialTrailerVideo) {
-    const bgAudio = document.getElementById('bg-audio');
-    if (bgAudio) bgAudio.pause();
     officialTrailerVideo.setAttribute('controls', 'true');
     officialTrailerVideo.play();
   }
@@ -332,70 +328,4 @@ window.addEventListener('load', () => {
   });
 });
 
-/* ── BACKGROUND SOUNDTRACK LOGIC ───────────────────────── */
-(function initBackgroundMusic() {
-  const bgAudio     = document.getElementById('bg-audio');
-  const teaserVid   = document.getElementById('teaserVideo');
-  const trailerVid  = document.getElementById('officialTrailerVideo');
-  
-  if (!bgAudio) return;
 
-  let playCount = 0;
-  const MAX_PLAYS = 2;
-  let isVideoPlaying = false;
-
-  function tryResume() {
-    if (!isVideoPlaying && playCount < MAX_PLAYS) {
-      bgAudio.play().catch(() => {});
-    }
-  }
-
-  function pauseForVideo() {
-    isVideoPlaying = true;
-    bgAudio.pause();
-  }
-
-  function videoStopped() {
-    isVideoPlaying = false;
-    tryResume();
-  }
-
-  // Track play count
-  bgAudio.addEventListener('ended', () => {
-    playCount++;
-    if (playCount < MAX_PLAYS && !isVideoPlaying) {
-      bgAudio.play().catch(() => {});
-    }
-  });
-
-  // Pause/resume for BOTH videos
-  [teaserVid, trailerVid].forEach(video => {
-    if (!video) return;
-    video.addEventListener('play', pauseForVideo);
-    video.addEventListener('pause', videoStopped);
-    video.addEventListener('ended', videoStopped);
-  });
-
-  // Start music: try immediately, then on first interaction
-  function startMusic() {
-    if (bgAudio.paused && playCount < MAX_PLAYS && !isVideoPlaying) {
-      bgAudio.volume = 0.35;
-      bgAudio.play().catch(() => {});
-    }
-  }
-
-  // Attempt autoplay on page load
-  window.addEventListener('load', () => {
-    setTimeout(startMusic, 500);
-  });
-
-  // Fallback: start on first user interaction (scroll/touch/click)
-  const interactions = ['scroll', 'touchstart', 'click', 'keydown'];
-  const onFirstInteraction = () => {
-    startMusic();
-    interactions.forEach(evt => document.removeEventListener(evt, onFirstInteraction));
-    window.removeEventListener('scroll', onFirstInteraction);
-  };
-  interactions.forEach(evt => document.addEventListener(evt, onFirstInteraction, { once: true, passive: true }));
-  window.addEventListener('scroll', onFirstInteraction, { once: true, passive: true });
-})();
